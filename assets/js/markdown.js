@@ -126,12 +126,15 @@ export function trySmartTypography(editor, data, quotes) {
 
   const caret = range.startOffset;
   const before = node.textContent.slice(0, caret);
+  // Don't mangle a URL being typed (http://a--b.com, a->b inside a link, …).
+  const token = before.slice(before.search(/\S+$/));
+  const urlish = /^(https?:\/\/|www\.)/i.test(token) || token.includes("://");
   let from = -1;
   let repl = null;
 
-  if (data === "-" && before.endsWith("--")) { from = caret - 2; repl = "—"; }
-  else if (data === "." && before.endsWith("...")) { from = caret - 3; repl = "…"; }
-  else if (data === ">" && before.endsWith("->")) { from = caret - 2; repl = "→"; }
+  if (!urlish && data === "-" && before.endsWith("--")) { from = caret - 2; repl = "—"; }
+  else if (!urlish && data === "." && before.endsWith("...")) { from = caret - 3; repl = "…"; }
+  else if (!urlish && data === ">" && before.endsWith("->")) { from = caret - 2; repl = "→"; }
   else if (quotes && (data === '"' || data === "'")) {
     const prev = before[caret - 2];
     const open = !prev || /[\s([{‘“]/.test(prev);

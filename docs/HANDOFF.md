@@ -63,6 +63,13 @@ Documents live in `localStorage` (`gruvbox-word:docs`); each is `{id, title, htm
 
 ## Change log
 
+### 2026-06 — deferred low-priority fixes (PR #3)
+Slash menu flips above the line when there's no room below; focus mode dims only on `:focus-within`
+(no more whole-doc dim before the caret lands); TXT export keeps `[x]`/`[ ]` checklist markers; paste
+doesn't auto-link inside code blocks or existing links; creating/importing a doc clears the sidebar
+filter; "Replace" advances to the next match instead of resetting to the first; smart typography skips
+URL-looking tokens (`http://a--b` stays intact). Verified by 10 new Playwright checks (62 total green).
+
 ### 2026-06 — editor enhancements + bug/security hardening (commit `838e7f7`, PR #1)
 **Bugs fixed**
 - `Tab`/`Shift+Tab` now create/outdent sub-bullets (there was no Tab handler); nested lists export to Markdown correctly.
@@ -84,15 +91,11 @@ Verified by a headless Playwright suite (35 feature/regression + 17 hardening ch
 
 ---
 
-## Known deferred issues (LOW priority, intentionally not fixed)
-- Slash menu doesn't flip up when the line is near the viewport bottom (can render partly offscreen).
-- Focus mode dims the whole doc until the first caret interaction after load.
-- TXT export drops checklist markers (`innerText` has no glyph); HTML/DOC/MD are fine.
-- Paste-as-link doesn't guard against code blocks / nesting inside an existing `<a>`.
-- A new/imported doc is hidden from the sidebar while a non-matching filter is active.
-- "Replace" (single) always targets the first hit instead of advancing.
-- Typing a URL containing `--`/`->`/`...` gets it mangled by smart typography before autolink (paste is unaffected).
-- Range-based transforms aren't undoable via `Ctrl+Z` (architectural — would need a custom undo manager).
+## Known deferred issues
+- **Undo for typed transforms** — smart typography, inline Markdown, autolink, and checklist DOM ops
+  mutate via the Range API, so `Ctrl+Z` (`execCommand("undo")`) doesn't revert them. A proper fix needs a
+  custom history/undo manager that captures every mutation (a `MutationObserver` is the natural hook) yet
+  ignores transient find-highlight wrapping and restores the caret — left as a focused future change.
 
 ---
 

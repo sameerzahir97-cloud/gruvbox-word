@@ -316,8 +316,10 @@ button { font-family: inherit; }
 /* ============================================================
    Focus / typewriter mode — dim everything but the current block
    ============================================================ */
-.app.focus-mode .editor > * { opacity: .3; transition: opacity var(--tr); }
-.app.focus-mode .editor > .is-active-line { opacity: 1; }
+/* Dim only while the editor has focus, so a freshly loaded doc isn't dimmed before
+   the caret lands in it. */
+.app.focus-mode .editor:focus-within > * { opacity: .3; transition: opacity var(--tr); }
+.app.focus-mode .editor:focus-within > .is-active-line { opacity: 1; }
 
 /* ============================================================
    Status bar

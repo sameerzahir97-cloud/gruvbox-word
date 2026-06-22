@@ -46,7 +46,17 @@ export function exportMarkdown(editor, title) {
 }
 
 export function exportText(editor, title) {
-  const text = (editor.innerText || "").replace(/​/g, "");
+  // Render an offscreen clone so innerText keeps block line breaks, and turn checkboxes
+  // into "[x] "/"[ ] " markers (a bare <input> contributes no text).
+  const clone = editor.cloneNode(true);
+  clone.removeAttribute("id");
+  clone.querySelectorAll("input[type=checkbox]").forEach((b) =>
+    b.replaceWith(document.createTextNode(b.checked || b.hasAttribute("checked") ? "[x] " : "[ ] "))
+  );
+  clone.style.cssText = "position:fixed;left:-99999px;top:0";
+  document.body.appendChild(clone);
+  const text = (clone.innerText || "").replace(/​/g, "");
+  clone.remove();
   download(safeName(title) + ".txt", text, "text/plain;charset=utf-8");
 }
 

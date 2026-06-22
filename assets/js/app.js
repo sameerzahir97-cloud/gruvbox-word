@@ -31,6 +31,8 @@ function newDoc(html = "<p></p>", focus = true) {
   activeId = doc.id;
   store.saveDocs(docs);
   store.setActiveId(activeId);
+  const filter = $("#doc-filter"); // clear so the new/imported doc is visible in the sidebar
+  if (filter) filter.value = "";
   loadDoc(doc, focus);
   renderDocList();
   return doc;
@@ -39,6 +41,7 @@ function newDoc(html = "<p></p>", focus = true) {
 function loadDoc(doc, focus = true) {
   activeId = doc.id;
   store.setActiveId(activeId);
+  clearFocusLine(); // drop stale active-line ref from the previous doc
   editor.innerHTML = doc.html || "<p></p>";
   refreshEmpty();
   updateStats();
@@ -47,6 +50,7 @@ function loadDoc(doc, focus = true) {
   if (focus) {
     editor.focus();
     placeCaretEnd();
+    if (app.classList.contains("focus-mode")) updateFocusLine();
   }
 }
 
@@ -448,9 +452,12 @@ editor.addEventListener("paste", (e) => {
   e.preventDefault();
   const url = singleUrl(text);
   const sel = window.getSelection();
-  if (url && sel.rangeCount && !sel.isCollapsed) {
+  // Don't auto-link inside a code block or an existing link — paste plain text there.
+  const node = sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
+  const blocked = node && closest(node, "pre, code, a");
+  if (url && !blocked && sel.rangeCount && !sel.isCollapsed) {
     execCmd("createLink", url);
-  } else if (url && sel.rangeCount) {
+  } else if (url && !blocked && sel.rangeCount) {
     const a = document.createElement("a");
     a.setAttribute("href", url);
     a.textContent = text.trim();
@@ -606,7 +613,12 @@ function openSlashIfEmptyBlock() {
 function positionSlash(block) {
   const menu = $("#slash-menu");
   const r = block.getBoundingClientRect(); // block rect: a collapsed range in an empty <p> measures as (0,0)
-  menu.style.top = r.bottom + 4 + "px";
+  // Flip above the line when there isn't room below it.
+  const below = r.bottom + 4;
+  const top = below + menu.offsetHeight > window.innerHeight && r.top - menu.offsetHeight - 4 > 0
+    ? r.top - menu.offsetHeight - 4
+    : below;
+  menu.style.top = top + "px";
   menu.style.left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 12) + "px";
 }
 
@@ -644,6 +656,7 @@ function updateSlashMenu() {
   const text = block.textContent.replace(/​/g, "");
   if (text[0] !== "/" || /\s/.test(text)) { closeSlash(); return; } // deleted "/" or typed a space → dismiss
   renderSlash(text.slice(1));
+  positionSlash(block); // height changed with filtering — re-evaluate the flip
 }
 
 function moveSlash(d) {
@@ -844,12 +857,11 @@ function stepFind(dir) {
 
 function replaceOne() {
   if (findIdx < 0 || !findHits[findIdx]) return;
-  const mark = findHits[findIdx];
-  const repl = document.createTextNode($("#replace-input").value);
-  mark.replaceWith(repl);
-  findHits.splice(findIdx, 1);
+  const idx = findIdx;
+  findHits[findIdx].replaceWith(document.createTextNode($("#replace-input").value));
   persist();
-  runFind();
+  runFind(); // rebuilds findHits and resets findIdx to 0
+  if (findHits.length) { findIdx = Math.min(idx, findHits.length - 1); focusHit(); } // stay put → next hit
 }
 
 function replaceAll() {
