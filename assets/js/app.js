@@ -4,11 +4,16 @@ import * as store from "./storage.js";
 import { applyCommand, activeCommands, execCmd, initEditorDefaults, tryListIndent, closest, createTaskItem } from "./editor.js";
 import { tryBlockShortcut, tryInlineShortcut, trySmartTypography, tryAutoLink, singleUrl, markdownToHtml, topBlock } from "./markdown.js";
 import { runExport } from "./export.js";
+import { createHistory } from "./history.js";
 
 const $ = (sel) => document.querySelector(sel);
 const editor = $("#editor");
 const app = $("#app");
 const ZWSP = "​";
+
+// Undo/redo that captures every edit (execCommand AND raw DOM transforms). Seeded per
+// document in loadDoc(); afterRestore() refreshes the UI when a snapshot is applied.
+const editHistory = createHistory(editor, () => afterRestore());
 
 const WELCOME = `<h1>Welcome to Gruvbox Word</h1><p>A calm place to write. Start typing, or try a little Markdown — type <code>#&nbsp;</code> for a heading, <code>-&nbsp;</code> for a list, or wrap a word in <code>**stars**</code> for <strong>bold</strong>.</p><p>Everything saves automatically and stays on your device. When you're done, hit <strong>Export</strong> for Word, Markdown, HTML or PDF.</p><p>Happy writing. ✶</p>`;
 
@@ -52,6 +57,7 @@ function loadDoc(doc, focus = true) {
     placeCaretEnd();
     if (app.classList.contains("focus-mode")) updateFocusLine();
   }
+  editHistory.reset(); // start a fresh undo timeline for this document
 }
 
 function deleteDoc(id) {
@@ -243,6 +249,8 @@ const ACTIONS = {
   focus: toggleFocus,
   zen: toggleZen,
   help: openHelp,
+  undo: () => editHistory.undo(),
+  redo: () => editHistory.redo(),
 };
 
 document.querySelector(".toolbar").addEventListener("click", (e) => {
@@ -539,6 +547,19 @@ function toggleTheme() {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = next;
   savePref("theme", next);
+}
+
+/* ===================== history (undo / redo) ===================== */
+
+// Refresh everything after an undo/redo swaps the editor content.
+function afterRestore() {
+  persist();
+  updateStats();
+  buildOutline();
+  refreshEmpty();
+  syncToolbar();
+  if (app.classList.contains("focus-mode")) updateFocusLine();
+  if (!$("#find-bar").hidden) runFind(); // re-highlight against the restored content
 }
 
 /* ===================== export menu ===================== */
@@ -950,7 +971,8 @@ document.addEventListener("keydown", (e) => {
   if (k === "\\") { e.preventDefault(); toggleSidebar(); return; }
   if (k === "s") { e.preventDefault(); toggleExportMenu(); return; }
   if (k === "f") { e.preventDefault(); openFind(); return; }
-  if (k === "y") { e.preventDefault(); applyCommand("redo", editor); return; }
+  if (k === "z" && !e.shiftKey) { e.preventDefault(); editHistory.undo(); return; }
+  if (k === "y") { e.preventDefault(); editHistory.redo(); return; }
 
   if (map[k] && !e.shiftKey && !e.altKey) {
     e.preventDefault();

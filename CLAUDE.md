@@ -21,4 +21,6 @@ No framework, no bundler, no build step — keep it that way.
 
 ## Ship
 - Branch + PR; don't push `main` directly. Merging `main` deploys to word.sameerzahir.com (GitHub Pages).
+- The service worker is stale-while-revalidate, so content edits propagate on their own — but **bump
+  `CACHE` in `sw.js` whenever you add/remove a file in its `ASSETS` precache list**.
 - Update the `docs/HANDOFF.md` change log when you ship something notable.

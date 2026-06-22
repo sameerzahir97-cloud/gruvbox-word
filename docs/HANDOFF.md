@@ -20,6 +20,7 @@ footguns, and how to verify changes. Read this before editing the editor.
 | `assets/js/markdown.js` | Live Markdown shortcuts + HTML⇄Markdown conversion + URL safety. | `tryBlockShortcut`, `tryInlineShortcut`+`INLINE_RULES`, `trySmartTypography`, `tryAutoLink`, `singleUrl`, **`safeHref`**, `htmlToMarkdown` (`inline`/`listLines`/`walk`), `markdownToHtml`, `topBlock` |
 | `assets/js/storage.js` | `localStorage` persistence (`docs`, `active`, `prefs`), `deriveTitle`. | — |
 | `assets/js/export.js` | Client-side export. | `cleanHtml`, `runExport` (doc/md/html/txt/pdf) |
+| `assets/js/history.js` | Undo/redo: MutationObserver-driven content snapshots. | `createHistory(editor, onRestore)` → `{undo, redo, reset}` |
 | `sw.js` | Service worker — offline app-shell cache. | — |
 
 Documents live in `localStorage` (`gruvbox-word:docs`); each is `{id, title, html, createdAt, updatedAt, renamed?, goal?}`.
@@ -29,9 +30,11 @@ Documents live in `localStorage` (`gruvbox-word:docs`); each is `{id, title, htm
 ## Editor model & invariants (read before touching the editor)
 
 1. **Two engines coexist.** Lists/bold/headings use `document.execCommand`; smart typography, inline
-   Markdown, autolink, and all checklist ops mutate the DOM via the **Range API**. Consequence:
-   **manual mutations are NOT on the execCommand undo stack** — `Ctrl+Z` won't cleanly revert a typed
-   transform. Don't assume undo works for them.
+   Markdown, autolink, and all checklist ops mutate the DOM via the **Range API**. Undo/redo does NOT
+   rely on the native execCommand stack — `assets/js/history.js` watches the editor with a
+   `MutationObserver` and snapshots its content, so *both* kinds of edit are captured. Take-away: any new
+   edit path is automatically undoable (no hook needed), but if you add transient view-only DOM (like the
+   find `<mark>`s), strip it in `history.js`'s `contentHtml()` so it doesn't become an undo step.
 2. **One ordered `input` handler** (`app.js`). Order, at most one transform per keystroke:
    `refreshEmpty` → (slash open? update filter, return) → on `insertText`: open slash on `/` →
    `trySmartTypography` → inline shortcut (`*_\`~)`) → autolink on space → `persist/updateStats/buildOutline`.
@@ -63,6 +66,16 @@ Documents live in `localStorage` (`gruvbox-word:docs`); each is `{id, title, htm
 
 ## Change log
 
+### 2026-06 — undo/redo overhaul + service worker (PR #4)
+Replaced the unreliable native undo with a snapshot history manager (`assets/js/history.js`): a
+`MutationObserver` captures *every* edit — execCommand and raw Range transforms (smart typography, inline
+Markdown, autolink, checklists, paste, find-replace) — comparing content with find `<mark>`s stripped so
+highlighting never adds an undo step; caret restored by structural path; timeline reset per document;
+wired to `Ctrl+Z`/`Ctrl+Y` and the toolbar undo/redo buttons. Also upgraded the service worker to
+stale-while-revalidate (`CACHE` → `v2`, precache `history.js`) so content deploys reach installed PWA
+users automatically — only bump `CACHE` when the `ASSETS` precache list changes. Verified by 14
+undo/redo checks (76 total green).
+
 ### 2026-06 — deferred low-priority fixes (PR #3)
 Slash menu flips above the line when there's no room below; focus mode dims only on `:focus-within`
 (no more whole-doc dim before the caret lands); TXT export keeps `[x]`/`[ ]` checklist markers; paste
@@ -92,10 +105,8 @@ Verified by a headless Playwright suite (35 feature/regression + 17 hardening ch
 ---
 
 ## Known deferred issues
-- **Undo for typed transforms** — smart typography, inline Markdown, autolink, and checklist DOM ops
-  mutate via the Range API, so `Ctrl+Z` (`execCommand("undo")`) doesn't revert them. A proper fix needs a
-  custom history/undo manager that captures every mutation (a `MutationObserver` is the natural hook) yet
-  ignores transient find-highlight wrapping and restores the caret — left as a focused future change.
+None outstanding from the audit — all items resolved (the last one, undo for typed transforms, shipped
+in the undo/redo overhaul below).
 
 ---
 
