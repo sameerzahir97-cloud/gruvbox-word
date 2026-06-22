@@ -23,10 +23,12 @@ Most writing apps are either a heavyweight word processor or a bare Markdown box
 
 ## Features
 
-- **Hybrid editor** — click the toolbar like Word, *or* type Markdown (`# `, `- `, `> `, `**bold**`, `` `code` ``) and watch it format live as you type.
+- **Hybrid editor** — click the toolbar like Word, *or* type Markdown (`# `, `- `, `> `, `**bold**`, `` `code` ``) and watch it format live, with smart typography (`--`→—, `...`→…) and auto-linking.
+- **Checklists, slash menu & focus mode** — `[ ] ` for clickable task lists; press `/` on a blank line to insert any block; dim everything but the line you're writing.
+- **Writing goals** — set a per-document word target and watch the progress ring fill.
 - **Export anywhere** — Microsoft Word (`.doc`), Markdown, HTML, plain text, and print-perfect PDF. No server, no upload.
-- **Import** Markdown / text / HTML by picker or drag-and-drop.
-- **Multiple documents** with a sidebar, automatic saving, and a live outline built from your headings.
+- **Import** Markdown / text / HTML by picker or drag-and-drop (sanitized on the way in).
+- **Multiple documents** with a sidebar filter, automatic saving, and a live outline built from your headings.
 - **Find & replace** with match highlighting.
 - **Light & dark** Gruvbox themes, a distraction-free **zen mode**, and a full set of keyboard shortcuts.
 - **Installable PWA** — add it to your dock and use it fully offline.
@@ -46,10 +48,12 @@ Most writing apps are either a heavyweight word processor or a bare Markdown box
 | `*italic*` | *italic* |
 | `` `code` `` | `inline code` |
 | `~~strike~~` | ~~strikethrough~~ |
+| `[ ] ` | Checklist item |
+| `[text](url)` | A link |
 
 ## Keyboard shortcuts
 
-`Ctrl/⌘ + B / I` bold/italic · `Ctrl + E` inline code · `Ctrl + 1/2/3` headings · `Ctrl + K` link · `Ctrl + F` find · `Ctrl + S` export · `Ctrl + Alt + N` new doc · `Ctrl + Shift + L` theme · `Ctrl + Shift + Z` zen · `Ctrl + \` sidebar · `?` help.
+`Ctrl/⌘ + B / I` bold/italic · `Ctrl + E` inline code · `Ctrl + 1/2/3` headings · `Ctrl + K` link · `Ctrl + F` find · `Ctrl + S` export · `Ctrl + Alt + N` new doc · `Ctrl + Shift + L` theme · `Ctrl + Shift + Z` zen · `Ctrl + Shift + D` focus · `Ctrl + \` sidebar · `Tab` sub-bullet · `/` command menu · `?` help.
 
 ## Run locally
 
